@@ -188,7 +188,8 @@ def SplitClan(ClanList,node, NewNodes, NewClans):
 					##print Find(EdgeNode)
 					if '[' in str(EdgeNode):
 						ElementClan = clan.getclanwithnodes(clan.nodes[e])
-						if ElementClan.nodes not in SplitD[Find(EdgeNode)]:
+						#print('elementclan: ',ElementClan)
+						if ElementClan != None and ElementClan.nodes not in SplitD[Find(EdgeNode)]:
 							SplitD[Find(EdgeNode)].append(ElementClan.nodes)
 					elif EdgeNode.EdgeFrom() not in SplitD[Find(EdgeNode)]: 		
 						SplitD[Find(EdgeNode)].append(EdgeNode.EdgeFrom())
@@ -1166,7 +1167,7 @@ def ExtractLeaves(SomeClan):
 	tleave =''
 	for i in LL:
 		tleave = tleave + TotalAttributesValues[int(i)]
-	##print LL,'Internal'
+	##
 	#print tleave, 'internal'
 	for i in SomeClan.nodes:
 		if type(i)==list:

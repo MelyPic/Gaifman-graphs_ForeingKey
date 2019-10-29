@@ -360,6 +360,43 @@ def TxtFile(filename, GraphMatrix):
         TotalAttributesValues.extend(AttributeValueList[i])
     fileop.close()
 
+def TxtFile_normalize(filename,GraphMatrix):
+	fileop = open(filename, "r")
+	AttributeValueList = []
+	it = islice(fileop,1,None)
+	for AllLine in it:
+		Line = AllLine.split()
+		for i in Line:
+			i = i.replace('\n','')
+			if i not in AttributeValueList:
+				AttributeValueList.append(i)
+	fileop.close()
+	for i in range(len(AttributeValueList)):
+		l = []
+		for j in range(len(AttributeValueList)):
+			l.append([0])
+		GraphMatrix.append(l)
+	#print ('Total attribute values: ', AttributeValueList)
+	#for i in GraphMatrix:
+	#	print (i)
+	fileop = open(filename,'r')
+	it=islice(fileop,1,None)
+	for AllLine in it:
+		Line = AllLine.split()
+		for i in range(len(Line)):
+			for j in range(i+1,len(Line)):
+				Index_i = AttributeValueList.index(Line[i])
+				Index_j = AttributeValueList.index(Line[j])
+				GraphMatrix[Index_i][Index_j][0] +=1
+				GraphMatrix[Index_j][Index_i][0] +=1
+	fileop.close()
+	TotalAttributesValues.extend(AttributeValueList)
+	print('TotalAttributesValues: ',TotalAttributesValues)
+	#print('*********************')
+	#for i in GraphMatrix:
+	#	print(i)
+	#print('*********************')
+
 '''
 From txt To Matrix each value is an attribute
 '''
@@ -372,7 +409,10 @@ def TxtFile_ValueEqualAttribute(filename, GraphMatrix):
 	TotalValues = 0
 	it = islice(fileop,1,None)
 	for AllLine in it:
-		Line = AllLine.split(',')
+		if ',' in AllLine: 
+			Line = AllLine.split(',')
+		else:
+			Line = AllLine.split()
 		for i in Line:
 			i = i.replace('\n','')
 			if i:
@@ -398,7 +438,10 @@ def TxtFile_ValueEqualAttribute(filename, GraphMatrix):
 	it = islice(fileop, 1, None)
 	for line in it:
 		##print line
-		LineElements = line.split(',')
+		if ',' in line:
+			LineElements = line.split(',')
+		else:
+			LineElements = line.split()
 		for i in range(len(LineElements)):
 			LineElements[i] = LineElements[i].replace('\n','')
 			if LineElements[i]:
@@ -574,139 +617,99 @@ def CsvFile(filename, GraphMatrix):
 		TotalAttributesValues.extend(AttributeValueList[i])
 	fileop.close()
 
-def DocumentsFKTxtFile(GraphMatrix,FatherTable,ForeingKeySet,files_path):
-	print ('Carpeta: ',files_path)
-	print (ForeingKeySet)
-	ForeingKeys = ForeingKeySet.split(',')
-	print (ForeingKeys)
-	AttributeValueQuantity = []
-	AttributeNameList = []
-	AttributeValueList = []
-	AttributesOnFatherTable = []
-	AttributesValueListOnFatherTable = []
-	TotalValues = 0
+def NormalizeDatasets(files_path, FatherTable,ForeingKeySet,GraphMatrix):
+	ForeingKey = ForeingKeySet.split(',') 	
+	MergeWith = FatherTable
 	for filename in os.listdir(files_path):
-		fileop = open(files_path+'/'+filename,'r')
-		#print ('In file name: ', filename)
-		#print ('Father table: ',FatherTable)
-		AttributeNameListAux = fileop.readline().split()
-		#print ('AttributeNameListAux', AttributeNameListAux)
-		if filename == FatherTable+'.txt':
-			AttributesOnFatherTable = AttributeNameListAux
-			print  (AttributesOnFatherTable[0],'-----------------')
-		for i in AttributeNameListAux:
-			if i not in AttributeNameList:
-				AttributeNameList.append(i)
-		for i in range(len(AttributeNameList)):
-			AttributeValueQuantity.append(0) 
-			AttributeValueList.append([])
-		it = islice(fileop, 0, None)
-		for line in it:
-			AtributesLine = line.split()
-			#print('Atributesline: ',AtributesLine)
-			#print('AttributeValueList: ', AttributeValueList)			
-			#print('AttributeNameList: ',AttributeNameList)
-			#print('AttributeNameListAux: ',AttributeNameListAux)
-			for i in range(len(AtributesLine)):
-				if AtributesLine[i] not in AttributeValueList[AttributeNameList.index(AttributeNameListAux[i])]:
-					AttributeValueList[AttributeNameList.index(AttributeNameListAux[i])].append(AtributesLine[i])
-					AttributeValueQuantity[AttributeNameList.index(AttributeNameListAux[i])] += 1
-					TotalValues += 1
-		fileop.close()
-	# genera matriz con ceros
-	for i in range(TotalValues):
-		l = []
-		for j in range(TotalValues):
-			l.append([0])
-		GraphMatrix.append(l)
-	print ('AttributeValueList: ', AttributeValueList)
-	print ('AttributesOnFatherTable: ', AttributesOnFatherTable)
-	print ('Index general: ',AttributeNameList.index(AttributesOnFatherTable[0]))
-	print ('AttributeValueson father table: ')
-	AttributesValuesOnFatherTable =[]
-	for i in range(len(AttributesOnFatherTable)):
-		AttributesValuesOnFatherTable.extend(AttributeValueList[AttributeNameList.index(AttributesOnFatherTable[i])])
-	print ('Attribute values on father table: ',AttributesValuesOnFatherTable)
-		#print(AttributeValueList[AttributeNameList.index(AttributesOnFatherTable[i])])
-	WS = WhereStart(AttributeValueQuantity)
-	for filename in os.listdir(files_path):
-		fileop = open(files_path + '/' + filename, "r")
-		AttributeNameListAux = fileop.readline().split()
-		it = islice(fileop, 1, None)
-		for line in it:
-			LineElements = line.split(' ')
-			i = 0
-			fk_bool = False
-			while i < len(LineElements) - 1:
-				if i == 0:
-					row = AttributeValueList[AttributeNameList.index(AttributeNameListAux[0])].index(LineElements[0])  # Dentro de la lista de valores del atributo i, busca el indice del valor
-				else:
-					row = WS[AttributeNameList.index(AttributeNameListAux[i])] + AttributeValueList[AttributeNameList.index(AttributeNameListAux[i])].index(LineElements[i])
-				for j in range(i + 1, len(LineElements)):
-					if '\n' in LineElements[j]:
-						LineElements[j] = LineElements[j].replace('\n', '')						
-					column = WS[AttributeNameList.index(AttributeNameListAux[j])] + AttributeValueList[AttributeNameList.index(AttributeNameListAux[j])].index(LineElements[j])
-					GraphMatrix[row][column][0] = int(GraphMatrix[row][column][0]) + 1
-					GraphMatrix[column][row][0] = int(GraphMatrix[column][row][0]) + 1					
-				i += 1
-		fileop.close()
-		# #print 'Total values',TotalValues
-	for i in AttributeValueList:
-		TotalAttributesValues.extend(i)
-	print (TotalAttributesValues)
-	for i in GraphMatrix:
-		print (i)
-	IndexInvolveOnFatherTable =[]
-	IndexInvolveForeingKey = []
-	IndexByForeingKey =[]	
-	for attribute in AttributesOnFatherTable:
-		i_a = AttributeNameList.index(attribute)
-		init = WS[i_a]
-		end = init + len(AttributeValueList[i_a])
-		IndexInvolveOnFatherTable.extend(list(range(init,end)))
-		if attribute in ForeingKeys:
-			IndexInvolveForeingKey.extend(list(range(init,end)))
-			IndexByForeingKey.append(list(range(init,end)))
-	print('Indices de los atributos en la father table: ', IndexInvolveOnFatherTable)
-	print('Indices de los atributos foreing key: ', IndexInvolveForeingKey)
-	print('Indices de foreign keys separados: ', IndexByForeingKey)
+		if filename != MergeWith+'.txt' and filename != FatherTable+'.txt' :
+			filename = filename.replace('.txt','')
+			MergeWith = Merge(filename,MergeWith,ForeingKey,files_path)
+	#TxtFile(files_path+'/'+MergeWith+'.txt', GraphMatrix)
+	TxtFile_normalize(files_path+'/'+MergeWith+'.txt', GraphMatrix)
+		
+'''
+Table2 sera la FatherTable, mezcla los valores de Table1 con Table2 segun los atributos de la llave foranea
+devuelve el nombre de la tabla que contiene el merge de ambas
+'''
+def Merge(Table1,Table2,ForeingKeyList,FilesPath):
+	FileTable1 = open(FilesPath+'/'+Table1+'.txt','r')
+	FileTable2 = open(FilesPath+'/'+Table2+'.txt','r')
+	FileReturn = open(files_path+'/'+Table1+Table2+'.txt','w+')
 	
-	for i in range(len(GraphMatrix)):
-		if i in IndexInvolveForeingKey:
-			for j in range(len(GraphMatrix[i])):
-				if j not in IndexInvolveOnFatherTable and GraphMatrix[i][j][0]!=0:
-					for k in  IndexInvolveOnFatherTable:
-						if IsNotSameForeingKey(k,i,IndexByForeingKey):
-							GraphMatrix[k][j][0] += GraphMatrix[i][j][0]
-							GraphMatrix[j][k][0] += GraphMatrix[i][j][0]
-	#print('***************')
-	#for i in GraphMatrix:
-	#	print (i)
-	#print('***************')
-	 
-
-
-def IsNotSameForeingKey(indx_k, indx_i, AllIndxFK):
-	print (AllIndxFK)
-	print ('i: ',indx_i)
-	print ('k: ',indx_k)
-	NotFound= True
-	i=0
-	while(NotFound):
-		if indx_i in AllIndxFK[i]:
-			NotFound = False
+	IndexOfForeingKeysInTable1 = []
+	IndexOfForeingKeysInTable2 = []
+	ForeingKeysInFileTable1 = []
+	AttributesNameMergeTable=[]
+	
+	AttributesTable1 = FileTable1.readline().split()
+	AttributesTable2 = FileTable2.readline().split()
+	
+	#print (AttributesTable1)
+	#print (AttributesTable2)
+	AttributesMergeTable = ''
+	for a in AttributesTable2:
+		AttributesMergeTable = AttributesMergeTable + ' ' + a
+		AttributesNameMergeTable.append(a)
+	
+	count_new_attributes = 0
+	
+	for a in AttributesTable1:
+		if a not in ForeingKeyList:
+			AttributesMergeTable = AttributesMergeTable + ' ' + a
+			AttributesNameMergeTable.append(a)
+			count_new_attributes += 1
 		else:
-			i += 1		
-	if not NotFound:
-		if indx_k in AllIndxFK[i]:
-			print('no entra')
-			return False
-		else:
-			print ('entra')
-			return True
-	else:
-		return False
-		print (indx_i,' is not a foreing key')
+			IndexOfForeingKeysInTable1.append(AttributesTable1.index(a))
+			IndexOfForeingKeysInTable2.append(AttributesTable2.index(a))
+	ToRemove=[]		
+	FileReturn.write(AttributesMergeTable+'\n')
+	it = islice(FileTable1, 0, None)
+	for line in it:
+		lookingfor = []		
+		AttributesT1Line = line.split()
+		for i in IndexOfForeingKeysInTable1:
+			lookingfor.append(AttributesT1Line[i])
+		#print ('Looking for: ', lookingfor)	
+		FileTable2.seek(0,0)
+		itc = islice(FileTable2,1,None)
+		for LineOnTable2 in itc:
+			print (LineOnTable2)
+			AttributesOnTable2 = LineOnTable2.split() 
+			equal = True
+			i=0
+			while(equal and i <len(lookingfor)):
+				try:#puede haber ocasiones que la linea no tenga todos los attributos
+					if lookingfor[i] != AttributesOnTable2[IndexOfForeingKeysInTable2[i]]:
+						equal = False
+					else:
+						i += 1
+				except:
+					i=len(lookingfor)
+					equal = False
+			if equal:
+				for i in range(count_new_attributes):
+					for j in range(len(AttributesT1Line)):
+						if j not in IndexOfForeingKeysInTable1:
+							AttributesOnTable2.append(AttributesT1Line[j])
+				new_text=''
+				for i in AttributesOnTable2:
+					if i not in new_text:
+						new_text = new_text +' '+ i 
+				#print('Se encontro y tratamos de escribir: ',new_text)
+				FileReturn.write(new_text+'\n')
+				if LineOnTable2 not in ToRemove:
+					ToRemove.append(LineOnTable2)						 
+			#else:
+				#print ('The values ',lookingfor,' are not in the line ',AttributesOnTable2,' y leemos otra linea.')
+	FileTable2.seek(0,0)
+	it = islice(FileTable2, 1, None)
+	for line in it:
+		if line not in ToRemove:
+			FileReturn.write(line+'\n') 
+	FileReturn.close()	
+	FileTable1.close()
+	FileTable2.close()
+	return Table1+Table2
 
 '''
 From txt FileS To Matrix
@@ -1159,7 +1162,8 @@ elif '2' in opt:
 		FatherTable = input('Father table name: ')
 		ForeingKeySet=input('Give the set of foreign keys: ')
 		print('ok, let us go work with: ',files_path)
-		DocumentsFKTxtFile(GraphMatrix,FatherTable,ForeingKeySet,files_path)
+		NormalizeDatasets(files_path,FatherTable,ForeingKeySet,GraphMatrix)
+		#DocumentsFKTxtFile(GraphMatrix,FatherTable,ForeingKeySet,files_path)
 		
 		
 
