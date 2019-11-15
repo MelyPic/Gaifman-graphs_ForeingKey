@@ -360,20 +360,21 @@ def TxtFile(filename, GraphMatrix):
         TotalAttributesValues.extend(AttributeValueList[i])
     fileop.close()
 
-def TxtFile_normalize(filename,GraphMatrix):
+def TxtFile_Desnormalize(filename,GraphMatrix,ForeignKeysValues):
 	fileop = open(filename, "r")
-	AttributeValueList = []
+	AttributeValueListWithoutFK = []
 	it = islice(fileop,1,None)
 	for AllLine in it:
 		Line = AllLine.split()
 		for i in Line:
 			i = i.replace('\n','')
-			if i not in AttributeValueList:
-				AttributeValueList.append(i)
+			print (i)
+			if i not in AttributeValueListWithoutFK and i not in ForeignKeysValues:
+				AttributeValueListWithoutFK.append(i)
 	fileop.close()
-	for i in range(len(AttributeValueList)):
+	for i in range(len(AttributeValueListWithoutFK)):
 		l = []
-		for j in range(len(AttributeValueList)):
+		for j in range(len(AttributeValueListWithoutFK)):
 			l.append([0])
 		GraphMatrix.append(l)
 	#print ('Total attribute values: ', AttributeValueList)
@@ -385,17 +386,19 @@ def TxtFile_normalize(filename,GraphMatrix):
 		Line = AllLine.split()
 		for i in range(len(Line)):
 			for j in range(i+1,len(Line)):
-				Index_i = AttributeValueList.index(Line[i])
-				Index_j = AttributeValueList.index(Line[j])
-				GraphMatrix[Index_i][Index_j][0] +=1
-				GraphMatrix[Index_j][Index_i][0] +=1
+				if Line[i] not in ForeignKeysValues:
+					Index_i = AttributeValueListWithoutFK.index(Line[i])
+					if Line[j] not in ForeignKeysValues:
+						Index_j = AttributeValueListWithoutFK.index(Line[j])
+						GraphMatrix[Index_i][Index_j][0] +=1
+						GraphMatrix[Index_j][Index_i][0] +=1					
 	fileop.close()
-	TotalAttributesValues.extend(AttributeValueList)
+	TotalAttributesValues.extend(AttributeValueListWithoutFK)
 	print('TotalAttributesValues: ',TotalAttributesValues)
-	#print('*********************')
-	#for i in GraphMatrix:
-	#	print(i)
-	#print('*********************')
+	print('*********************')
+	for i in GraphMatrix:
+		print(i)
+	print('*********************')
 
 '''
 From txt To Matrix each value is an attribute
@@ -617,28 +620,29 @@ def CsvFile(filename, GraphMatrix):
 		TotalAttributesValues.extend(AttributeValueList[i])
 	fileop.close()
 
-def NormalizeDatasets(files_path, FatherTable,ForeingKeySet,GraphMatrix):
-	ForeingKey = ForeingKeySet.split(',') 	
+def DesnormalizeDatasets(files_path, FatherTable,ForeignKeySet,GraphMatrix):
+	ForeignKey = ForeignKeySet.split(',') 
+	ForeignKeysValues = []	
 	MergeWith = FatherTable
 	for filename in os.listdir(files_path):
 		if filename != MergeWith+'.txt' and filename != FatherTable+'.txt' :
 			filename = filename.replace('.txt','')
-			MergeWith = Merge(filename,MergeWith,ForeingKey,files_path)
+			MergeWith = Merge2(filename,MergeWith,ForeignKey,files_path,ForeignKeysValues)
 	#TxtFile(files_path+'/'+MergeWith+'.txt', GraphMatrix)
-	TxtFile_normalize(files_path+'/'+MergeWith+'.txt', GraphMatrix)
+	TxtFile_Desnormalize(files_path+'/'+MergeWith+'.txt', GraphMatrix, ForeignKeysValues)
 		
 '''
 Table2 sera la FatherTable, mezcla los valores de Table1 con Table2 segun los atributos de la llave foranea
 devuelve el nombre de la tabla que contiene el merge de ambas
 '''
-def Merge(Table1,Table2,ForeingKeyList,FilesPath):
+def Merge(Table1,Table2,ForeignKeyList,FilesPath,ForeignKeysValues):
 	FileTable1 = open(FilesPath+'/'+Table1+'.txt','r')
 	FileTable2 = open(FilesPath+'/'+Table2+'.txt','r')
 	FileReturn = open(files_path+'/'+Table1+Table2+'.txt','w+')
 	
-	IndexOfForeingKeysInTable1 = []
-	IndexOfForeingKeysInTable2 = []
-	ForeingKeysInFileTable1 = []
+	IndexOfForeignKeysInTable1 = []
+	IndexOfForeignKeysInTable2 = []
+	ForeignKeysInFileTable1 = []
 	AttributesNameMergeTable=[]
 	
 	AttributesTable1 = FileTable1.readline().split()
@@ -654,22 +658,26 @@ def Merge(Table1,Table2,ForeingKeyList,FilesPath):
 	count_new_attributes = 0
 	
 	for a in AttributesTable1:
-		if a not in ForeingKeyList:
+		if a not in ForeignKeyList:
 			AttributesMergeTable = AttributesMergeTable + ' ' + a
 			AttributesNameMergeTable.append(a)
 			count_new_attributes += 1
 		else:
-			IndexOfForeingKeysInTable1.append(AttributesTable1.index(a))
-			IndexOfForeingKeysInTable2.append(AttributesTable2.index(a))
+			IndexOfForeignKeysInTable1.append(AttributesTable1.index(a))
+			IndexOfForeignKeysInTable2.append(AttributesTable2.index(a))
 	ToRemove=[]		
 	FileReturn.write(AttributesMergeTable+'\n')
 	it = islice(FileTable1, 0, None)
 	for line in it:
 		lookingfor = []		
 		AttributesT1Line = line.split()
-		for i in IndexOfForeingKeysInTable1:
-			lookingfor.append(AttributesT1Line[i])
-		#print ('Looking for: ', lookingfor)	
+		for i in IndexOfForeignKeysInTable1:
+			try:
+				lookingfor.append(AttributesT1Line[i])
+				if AttributesT1Line[i] not in ForeignKeysValues:
+					ForeignKeysValues.append(AttributesT1Line[i])
+			except:
+				print ('Looking for: ', lookingfor)	
 		FileTable2.seek(0,0)
 		itc = islice(FileTable2,1,None)
 		for LineOnTable2 in itc:
@@ -679,7 +687,9 @@ def Merge(Table1,Table2,ForeingKeyList,FilesPath):
 			i=0
 			while(equal and i <len(lookingfor)):
 				try:#puede haber ocasiones que la linea no tenga todos los attributos
-					if lookingfor[i] != AttributesOnTable2[IndexOfForeingKeysInTable2[i]]:
+					if AttributesOnTable2[IndexOfForeignKeysInTable2[i]]not in ForeignKeysValues:
+						ForeignKeysValues.append(AttributesOnTable2[IndexOfForeignKeysInTable2[i]])
+					if lookingfor[i] != AttributesOnTable2[IndexOfForeignKeysInTable2[i]]:
 						equal = False
 					else:
 						i += 1
@@ -689,7 +699,7 @@ def Merge(Table1,Table2,ForeingKeyList,FilesPath):
 			if equal:
 				for i in range(count_new_attributes):
 					for j in range(len(AttributesT1Line)):
-						if j not in IndexOfForeingKeysInTable1:
+						if j not in IndexOfForeignKeysInTable1:
 							AttributesOnTable2.append(AttributesT1Line[j])
 				new_text=''
 				for i in AttributesOnTable2:
@@ -709,6 +719,106 @@ def Merge(Table1,Table2,ForeingKeyList,FilesPath):
 	FileReturn.close()	
 	FileTable1.close()
 	FileTable2.close()
+	return Table1+Table2
+
+'''
+Table2 sera la FatherTable, mezcla los valores de Table1 con Table2 segun los atributos de la llave foranea
+devuelve el nombre de la tabla que contiene el merge de ambas
+'''
+def Merge2(Table1,Table2,ForeignKeyList,FilesPath,ForeignKeysValues):
+	FileTable1 = open(FilesPath+'/'+Table1+'.txt','r')
+	FileTable2 = open(FilesPath+'/'+Table2+'.txt','r+')
+	FileReturn = open(files_path+'/'+Table1+Table2+'.txt','w+')
+	
+	IndexOfForeignKeysInTable1 = []
+	IndexOfForeignKeysInTable2 = []
+	FT2rl = FileTable2.readline()
+	AttributesTable1 = FileTable1.readline().split()
+	AttributesTable2 = FT2rl.split()
+	for a in AttributesTable1:
+		if a in ForeignKeyList:
+			IndexOfForeignKeysInTable1.append(AttributesTable1.index(a))
+			IndexOfForeignKeysInTable2.append(AttributesTable2.index(a))
+	FileReturn.write(FT2rl)
+	ToRemove=[]	
+	DictFK ={}
+	FileTable1.seek(0,0)	
+	it = islice(FileTable1, 1, None)
+	for line in it:
+		lookingfor = []		
+		AttributesT1Line = line.split()
+		for i in IndexOfForeignKeysInTable1:
+			try:
+				lookingfor.append(AttributesT1Line[i])
+				if AttributesT1Line[i] not in ForeignKeysValues:
+					ForeignKeysValues.append(AttributesT1Line[i])
+			except:
+				print ('Look:')
+		print ('Looking for: ', lookingfor)	
+		lf = ''
+		for l in lookingfor:
+			lf=lf+l
+		DictFK[lf]=''
+	
+	FileTable1.seek(0,0)	
+	it = islice(FileTable1, 1, None)
+	for line in it:
+		lookingfor = []		
+		AttributesT1Line = line.split()
+		for i in IndexOfForeignKeysInTable1:
+			try:
+				lookingfor.append(AttributesT1Line[i])
+				#if AttributesT1Line[i] not in ForeignKeysValues:
+				#	ForeignKeysValues.append(AttributesT1Line[i])
+			except:
+				print ('Look:')
+		lf = ''
+		for l in lookingfor:
+			lf=lf+l
+		FileTable2.seek(0,0)
+		itc = islice(FileTable2,1,None)
+		for line2 in itc:
+			AttributesOnTable2 = line2.split() 
+			equal = True
+			i=0
+			while(equal and i <len(lookingfor)):
+				try:#puede haber ocasiones que la linea no tenga todos los attributos
+					if AttributesOnTable2[IndexOfForeignKeysInTable2[i]]not in ForeignKeysValues:
+						ForeignKeysValues.append(AttributesOnTable2[IndexOfForeignKeysInTable2[i]])
+					if lookingfor[i] != AttributesOnTable2[IndexOfForeignKeysInTable2[i]]:
+						equal = False
+					else:
+						i += 1
+				except:
+					i=len(lookingfor)
+					equal = False
+			if equal and i == len(lookingfor):
+				for j in range(len(AttributesT1Line)):
+					if j not in IndexOfForeignKeysInTable1 and AttributesT1Line[j] not in AttributesOnTable2:
+						AttributesOnTable2.append(AttributesT1Line[j])
+				new_text = DictFK.get(lf)
+				for at in AttributesOnTable2:
+					if at not in new_text:
+						new_text = new_text+' '+at 
+				DictFK[lf] = new_text	
+				#print('Se encontro y tratamos de escribir: ',new_text)
+				#FileReturn.write(new_text+'\n')
+				if line2 not in ToRemove:
+					ToRemove.append(line2)						 
+			#else:
+				#print ('The values ',lookingfor,' are not in the line ',AttributesOnTable2,' y leemos otra linea.')
+	FileTable2.seek(0,0)
+	it = islice(FileTable2, 1, None)
+	for line in it:
+		if line not in ToRemove and (line !='' or line !='\n'):
+			#FileReturn.remove(line)
+			FileReturn.write(line) 
+	for v in DictFK.values():
+		if v!= '':
+			FileReturn.write(v+'\n')
+	
+	FileReturn.close()	
+	FileTable1.close()	
 	return Table1+Table2
 
 '''
@@ -1160,10 +1270,10 @@ elif '2' in opt:
 			DocumentsArffFile(GraphMatrix)
 	else:
 		FatherTable = input('Father table name: ')
-		ForeingKeySet=input('Give the set of foreign keys: ')
+		ForeignKeySet=input('Give the set of foreign keys: ')
 		print('ok, let us go work with: ',files_path)
-		NormalizeDatasets(files_path,FatherTable,ForeingKeySet,GraphMatrix)
-		#DocumentsFKTxtFile(GraphMatrix,FatherTable,ForeingKeySet,files_path)
+		DesnormalizeDatasets(files_path,FatherTable,ForeignKeySet,GraphMatrix)
+		#DocumentsFKTxtFile(GraphMatrix,FatherTable,ForeignKeySet,files_path)
 		
 		
 
@@ -1307,7 +1417,7 @@ if GraphMatrix != []:
 	
 	
 	
-print(TotalAttributesValues)	
-for i in TotalAttributesValues:
-	print (i)
+#print(TotalAttributesValues)	
+#for i in TotalAttributesValues:
+#	print (i)
 

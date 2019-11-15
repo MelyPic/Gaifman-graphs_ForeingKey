@@ -152,6 +152,94 @@ def RemoveFromActualClan(ListOfNodes):
 		else:
 			i+=1
 		
+def SplitClanType(ClanList,node, NewNodes, NewClans,FromClanType):
+	#print 'Split:'
+	#print str(ClanList),type(ClanList)
+	#for i in ClanList:
+		#print i.nodes	
+	
+	ToSplit=[]
+	ListToSplit = []
+	if FromClanType == 'complete':	
+		for clan in ClanList:
+			if clan.clantype == 'complete':
+				SplitD={}
+				for i in CCT[0]:
+					print ('CCT[0][i]: ',i)
+					SplitD.setdefault(i, [])	
+				SplitEdges = []
+				for element in clan.nodes:
+					print ('element',str(element))
+					if type(element) == str:
+						element = element.replace(' ','')
+					SplitEdges.append(str(element)+','+node)
+					print ('SplitEdges:',str(element)+','+node)
+				#e=0
+				#while e < len(SplitEdges):
+				for e in range(len(SplitEdges)):
+					edge = SplitEdges[e]
+					print ('edge ',edge)
+					EdgeNode = EdgeOf(edge)
+					print ('EdgeNode :::::::::::::::::',str(EdgeNode))
+					if EdgeNode != 'Edge not found':
+						##print '******', str(EdgeNode)
+						##print 'edgeNode from', EdgeNode.EdgeFrom()
+						##print Find(EdgeNode)
+						if '[' in str(EdgeNode):
+							ElementClan = clan.getclanwithnodes(clan.nodes[e])
+							print('elementclan: ',ElementClan)
+							if ElementClan != None and ElementClan.nodes not in SplitD[Find(EdgeNode)]:
+								SplitD[Find(EdgeNode)].append(ElementClan.nodes)
+						elif EdgeNode.EdgeFrom() not in SplitD[Find(EdgeNode)]: 		
+							SplitD[Find(EdgeNode)].append(EdgeNode.EdgeFrom())
+			
+					else:
+						print ('The edge ', edge,' is not')
+						#print clan.nodes[e], type(clan.nodes[e])
+						#print EdgeOf(edge)
+						#print 'clan: ',clan.nodes
+						#print 'clanes in clan: '
+						#for k in clan.clanlist:
+							#print k
+						auxclan = clan.getclanwithnodes(clan.nodes[e])
+						if auxclan == None:
+							auxclan = ClanGenerator(clan.nodes[e])
+							#ActualClan.remove_clan(auxclan)
+							#RemoveFromActualClan(clan.nodes[e])
+						ToSplit.append(auxclan)
+						print ('Dictionary values ', SplitD.values())
+		
+				for i in SplitD.values():
+					print ('Value: ',i)
+					if len(i)>1:
+						if i not in NewClans:
+							#print 'It is in new clans ', i
+							NewClans.append(i)
+							#print i
+					
+					elif len(i)==1:
+						if type(i[0]) == list:
+							if i[0] not in NewClans:
+								NewClans.append(i[0])
+						elif i[0] not in NewNodes:
+							NewNodes.append(i[0])
+					print ('Newclans: ',NewClans)
+					print ('NewNodes: ',NewNodes)
+			else:
+				for j in clan.nodes:
+					if '[' in str(j):
+						auxclan = clan.getclanwithnodes(j)
+						NewClans.append(auxclan)
+					else:
+						NewNodes.append(j)
+		
+	print ('***** Newclans: ',NewClans)
+	print ('***** NewNodes: ',NewNodes)
+	for i in ToSplit:
+		print ('ToSplit: ',str(i.nodes))			
+	if ToSplit != []:
+		SplitClanType(ToSplit,node,NewNodes,NewClans,'complete')
+
 
 def SplitClan(ClanList,node, NewNodes, NewClans):
 	#print 'Split:'
@@ -691,11 +779,12 @@ def AddNode(Clan,node): #MyClan Clan, str node
 				#Clan.remove_nodes_from(NonVisibleClans)
 				Clan.clantype = 'primitive'
 				
-				
+				print('Agregas al nodo al clan quedando: ',Clan.nodes)
+				print('hacemos split en: ', ClanList,' con tipo:',)
 				#S=Split(NonVisibleClans,node,TypeOfNonVisibleclans)
 				S1=[]
 				S2=[]
-				S=SplitClan(ClanList,node,S1,S2)#
+				S=SplitClanType(ClanList,node,S1,S2,'complete')#
 				##print 'Nuevos nodos', S[1]
 				#print 'Nuevos nodos', S1
 				Clan.add_nodes_from(S1)
@@ -709,7 +798,7 @@ def AddNode(Clan,node): #MyClan Clan, str node
 					Clan.add_clan(CG)
 					#Clan.add_clan(i)
 					Pack(CG.nodes)				
-				#print 'Nodos del Clan despues del Split: ', Clan.nodes,'***'
+				print ('Nodos del Clan despues del Split: ', Clan.nodes,'***')
 				
 				if VisibleClans != []:
 					VisibleNodes = HCAS[3]

@@ -79,13 +79,17 @@ def MakeCluster(Clan):
 				if MyGraph[int(Indx[0])][int(Indx[1])][0]== '0':
 					OutputFile.write('n_'+f+' -> n_'+t+' [color=black, style=dashed, arrowhead = none];\n')
 				else:
-					#colr = 1  # int(MyGraph[int(Indx[0])][int(Indx[1])])%23
-					colr = int(MyGraph[int(Indx[0])][int(Indx[1])])%23
-					print('*from to: ', int(Indx[0]), int(Indx[1]),MyGraph[int(Indx[0])][int(Indx[1])])	
+					if Indx[0]!= Indx[1]:
+						#colr = 1  # int(MyGraph[int(Indx[0])][int(Indx[1])])%23
+						if type(MyGraph[int(Indx[0])][int(Indx[1])])==list:
+							colr= int(MyGraph[int(Indx[0])][int(Indx[1])][0])%24
+						else:
+							colr = int(MyGraph[int(Indx[0])][int(Indx[1])])%23
+						print('*from to: ', int(Indx[0]), int(Indx[1]),MyGraph[int(Indx[0])][int(Indx[1])])	
 				
-					print('clase: ', MyGraph[int(Indx[0])][int(Indx[1])])
-					print('color: '+ DictColors[colr])
-					OutputFile.write('n_'+f+' -> n_'+t+' [color= '+DictColors[colr]+', arrowhead = none];\n')
+						print('clase: ', MyGraph[int(Indx[0])][int(Indx[1])])
+						print('color: '+ DictColors[colr])
+						OutputFile.write('n_'+f+' -> n_'+t+' [color= '+DictColors[colr]+', arrowhead = none];\n')
 				
 				restnode += 1
 			actnode += 1
@@ -184,14 +188,17 @@ if len(ActualClan.nodes)< 13:
 			if MyGraph[int(Indx[0])][int(Indx[1])][0] == '0':
 				OutputFile.write('n_'+f+' -> n_'+t+' [color=black, style=dashed, arrowhead = none];\n')
 			else:
-				#colr = 1  #int(MyGraph[int(Indx[0])][int(Indx[1])])%24
-				colr = int(MyGraph[int(Indx[0])][int(Indx[1])])%24
+				if Indx[0]!= Indx[1]:
+					if type(MyGraph[int(Indx[0])][int(Indx[1])])==list:
+						colr= int(MyGraph[int(Indx[0])][int(Indx[1])][0])%24
+					else:	
+						colr = int(MyGraph[int(Indx[0])][int(Indx[1])])%24
 				
-				#try:
-				print('**from to: ', int(Indx[0]),int(Indx[1]))	
-				print('clase: ', MyGraph[int(Indx[0])][int(Indx[1])])
-				print('color '+DictColors[colr])
-				OutputFile.write('n_'+f+' -> n_'+t+' [color= '+DictColors[colr]+' arrowhead = none];\n')
+					#try:
+					print('**from to: ', int(Indx[0]),int(Indx[1]))	
+					print('clase: ', MyGraph[int(Indx[0])][int(Indx[1])])
+					print('color '+DictColors[colr])
+					OutputFile.write('n_'+f+' -> n_'+t+' [color= '+DictColors[colr]+' arrowhead = none];\n')
 			restnode += 1
 		actnode += 1
 
