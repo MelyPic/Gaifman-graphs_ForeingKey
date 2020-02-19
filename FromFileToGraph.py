@@ -6,8 +6,26 @@ import collections
 from math import ceil,log,floor
 import os
 
-
-
+'''
+Auxiliar functions, true if l2 in l1
+'''
+def Contained(l1,l2):
+	contain= True
+	i=0
+	while contain and i<len(l2):
+		j=0
+		find = False
+		while not find and j<len(l1):
+			if l2[i]==l1[j]:
+				find = True
+			else:
+				j+=1
+		if find:
+			i+=1
+		else:
+			contain = False
+	return contain
+	
 '''
 Generate a plain matrix MyGraph, connected and disconnected nodes  
 '''
@@ -619,6 +637,438 @@ def CsvFile(filename, GraphMatrix):
 	for i in range(len(AttributeNameList)):
 		TotalAttributesValues.extend(AttributeValueList[i])
 	fileop.close()
+	
+def DataUnion(files_path, FatherTable,ForeignKeySet,GraphMatrix,FKV):
+	ForeignKey = ForeignKeySet.split(',') 
+	AttributeValues=[]
+	ForeignKeyValues = []
+	AttachTo = []
+	#GetForeignKeyValues(files_path,FatherTable,ForeignKey,ForeignKeyValues)
+	GetKeyValues(files_path,FatherTable,ForeignKey,ForeignKeyValues,AttributeValues)
+	for i in ForeignKeyValues:
+		AttachTo.append([])
+	#for filename in os.listdir(files_path):
+		#ReadTotalAttributeValues(files_path,filename,AttributeValues)
+		#ReadTotalAttributeValuesWithoutFK(files_path,filename,AttributeValues,ForeignKeyValues)			
+	for filename in os.listdir(files_path):
+		if filename != FatherTable+'.txt':
+			#FillMatrixDataUnionWithoutFK(files_path,filename,FatherTable,AttributeValues,GraphMatrix,ForeignKey,ForeignKeyValues,AttachTo)
+			#FillAttachTo(files_path,filename,FatherTable,AttributeValues,ForeignKey,ForeignKeyValues,AttachTo)
+			FillAttachToCompleteFK(files_path,filename,FatherTable,AttributeValues,ForeignKey,ForeignKeyValues,AttachTo)	
+	for i in AttachTo:
+		for j in i:
+			if j not in AttributeValues:
+				AttributeValues.append(j)
+	if FKV=='Y' or FKV=='y':
+		for j in ForeignKeyValues:
+			AttributeValues.append(j)			
+	for i in range(len(AttributeValues)):
+		l = []
+		for j in range(len(AttributeValues)):
+			l.append([0])
+		GraphMatrix.append(l)
+	if FKV=='Y' or FKV=='y':
+		FillGraphMatrixWithFK(files_path,FatherTable,ForeignKeyValues,AttributeValues,AttachTo,GraphMatrix,ForeignKey)
+		Clean(AttributeValues)
+	else:		
+		FillGraphMatrixWithoutFK(files_path,FatherTable,ForeignKeyValues,AttributeValues,AttachTo,GraphMatrix,ForeignKey)
+	
+	TotalAttributesValues.extend(AttributeValues)
+	
+	
+	print('TotalAttributesValues: ',AttributeValues)
+	print('*********************')
+	for i in GraphMatrix:
+		print(i)
+	for i in AttributeValues:
+		print(i)
+	for i in AttachTo:
+		print(i)
+def Clean(AttributeValues):
+	for i in range(len(AttributeValues)):
+		ia= AttributeValues[i]
+		if type(ia)==list: 
+			aux=ia[0]
+			for j in range(1,len(ia)):
+				aux = aux+'_'+ia[j]
+			AttributeValues[i]= aux		
+					
+def GetForeignKeyValues(FilesPath,Table,ForeignKey,ForeignKeyValues):
+	fileop = open(FilesPath+'/'+Table+'.txt','r')
+	Line = fileop.readline().split()
+	IndexFK = []
+	print ('ForeignKey: ',ForeignKey)
+	for a in Line:
+		if a in ForeignKey:
+			IndexFK.append(Line.index(a))
+	it = islice(fileop,0,None)
+	for Line in it:
+		AttributesLine=Line.split()
+		for i in range(len(AttributesLine)):
+			if i in IndexFK and AttributesLine[i] not in ForeignKeyValues:
+				ForeignKeyValues.append(AttributesLine[i])
+	print('ForeignKeyValues: ',ForeignKeyValues)
+
+#Let X,Y,Z be the attributes of the foreign key, using this function we get xyz key values
+def GetKeyValues(FilesPath,Table,ForeignKey,ForeignKeyValues,AttributeValues):
+	fileop = open(FilesPath+'/'+Table+'.txt','r')
+	Line = fileop.readline().split()
+	IndexFK = []
+	for a in Line:
+		if a in ForeignKey:
+			IndexFK.append(Line.index(a))
+	it = islice(fileop,0,None)
+	for Line in it:
+		keyvalue=[]
+		AttributesLine=Line.split()
+		for i in range(len(AttributesLine)):
+			if i in IndexFK:
+				keyvalue.append(AttributesLine[i])
+			elif AttributesLine[i] not in AttributeValues:
+				AttributeValues.append(AttributesLine[i])
+		if keyvalue not in ForeignKeyValues:
+			ForeignKeyValues.append(keyvalue)
+	print('ForeignKeyValues (xyz): ',ForeignKeyValues)	
+		
+def ReadTotalAttributeValues(FilesPath,Table,AttributeValues):
+	FileTable = open(FilesPath+'/'+Table,'r')
+	it = islice(FileTable,1,None)
+	for Line in it:
+		AttributesLine = Line.split()
+		for a in AttributesLine:
+			if a not in AttributeValues:
+				AttributeValues.append(a)
+	FileTable.close()
+	
+def ReadTotalAttributeValuesWithoutFK(FilesPath,Table,AttributeValues,ForeignKeyValues):
+	FileTable = open(FilesPath+'/'+Table,'r')
+	it = islice(FileTable,1,None)
+	for Line in it:
+		AttributesLine = Line.split()
+		for a in AttributesLine:
+			if a not in AttributeValues and a not in ForeignKeyValues:
+				AttributeValues.append(a)
+	FileTable.close()
+
+def FillAttachTo(FilesPath,Table,FatherTable,AttributeValues,ForeignKey,ForeignKeyValues,AttachTo):
+	IndexFK=[]	
+	FatherIndexFK=[]
+	filefather = open(FilesPath+'/'+FatherTable+'.txt','r')
+	fileop = open(FilesPath+'/'+Table,'r')
+	AttributesLine = fileop.readline().split()	
+	for a in AttributesLine:
+		if a in ForeignKey:
+			IndexFK.append(AttributesLine.index(a))
+	FatherAttributesLine = filefather.readline().split()	
+	for a in AttributesLine:
+		if a in ForeignKey:
+			FatherIndexFK.append(FatherAttributesLine.index(a))
+	it=islice(fileop,0,None)	
+	for Line in it:
+		AttributesLine = Line.split()		
+		lookingfor = []		
+		for i in IndexFK:
+			try:
+				lookingfor.append(AttributesLine[i])
+			except:
+				print ('There is not value for a specific attribute')	
+		filefather.seek(0,0)
+		itc = islice(filefather,1,None)
+		for LineOnTable2 in itc:
+			AttributesOnTable2 = LineOnTable2.split() 
+			equal = True
+			i=0
+			while(equal and i <len(lookingfor)):
+				try:#puede haber ocasiones que la linea no tenga todos los attributos
+					if lookingfor[i] != AttributesOnTable2[FatherIndexFK[i]]:
+						equal = False
+					else:
+						i += 1
+				except:
+					i=len(lookingfor)
+					equal = False
+			if equal:
+				for i in range(len(AttributesLine)):
+					if i not in IndexFK:
+						Index_i = AttributeValues.index(AttributesLine[i])
+						for al in lookingfor:
+							if AttributesLine[i] not in	AttachTo[ForeignKeyValues.index(al)]:
+								AttachTo[ForeignKeyValues.index(al)].append(AttributesLine[i])
+											
+	fileop.close()
+	filefather.close()
+
+def FillAttachToCompleteFK(FilesPath,Table,FatherTable,AttributeValues,ForeignKey,ForeignKeyValues,AttachTo):
+	print('ARCHIVO LEIDO: ',Table)
+	complete = False
+	IndexFK=[]	
+	FatherIndexFK=[]
+	filefather = open(FilesPath+'/'+FatherTable+'.txt','r')
+	fileop = open(FilesPath+'/'+Table,'r')
+	AttributesLine = fileop.readline().split()	
+	#for a in AttributesLine:
+	#	if a in ForeignKey:
+	#		IndexFK.append(AttributesLine.index(a))
+	FatherAttributesLine = filefather.readline().split()	
+	for a in AttributesLine:
+		if a in ForeignKey:
+			FatherIndexFK.append(FatherAttributesLine.index(a))
+			IndexFK.append(AttributesLine.index(a))
+	FatherIndexFK.sort()
+	if (len(IndexFK)==len(ForeignKey)):
+		complete=True
+	print('Attributes line: ',AttributesLine)
+	print('Father attribute line: ',FatherAttributesLine)
+	print('Father index FK: ',FatherIndexFK)
+	print('Index FK: ',IndexFK)
+	#for i in range(len(FatherIndexFK)):
+	#	IndexFK.append(AttributesLine.index(FatherAttributesLine[i]))
+	#print('IndexFK: ',IndexFK)
+	it=islice(fileop,0,None)	
+	for Line in it:
+		AttributesLine = Line.split()		
+		lookingfor = []	
+		for i in IndexFK:
+			try:
+				lookingfor.append(AttributesLine[i])#LISTA DE ATRIBUTOS A BUSCAR // ''x y z'' en nuestro caso
+			except:
+				print ('There is not value for a specific attribute')
+		print ('Looking for:', lookingfor)	
+		filefather.seek(0,0)
+		itc = islice(filefather,1,None)
+		for LineOnTable2 in itc:
+			AttributesOnTable2 = LineOnTable2.split() 
+			if complete:
+				#equal = True
+				#for i in range(len(lookingfor)):				
+				#	try:#puede haber ocasiones que la linea no tenga todos los attributos
+				#		if lookingfor[i] != AttributesOnTable2[FatherIndexFK[i]]:
+				#			equal = False				
+				#	except:
+				#		i=len(lookingfor)
+				#		equal = False
+				#if equal:	
+				print('complete')			
+				for i in range(len(AttributesLine)):
+					if i not in IndexFK:
+						AttachTo[ForeignKeyValues.index(lookingfor)].append(AttributesLine[i])
+						print('attach: ', AttributesLine[i])
+				print('attach to index: ',ForeignKeyValues.index(lookingfor))		
+			else:
+				print('NOT complete')
+				for j in range(len(ForeignKeyValues)):
+					print('Is ',lookingfor,' in ForeignKeyValues ',ForeignKeyValues[j])
+					if Contained(ForeignKeyValues[j],lookingfor):
+						for k in range(len(AttributesLine)):
+							if k not in IndexFK: 
+								AttachTo[j].append(AttributesLine[k])
+								print('attach: ',AttributesLine[k])	
+						print('attach to index: ',j)	
+									
+					
+											
+	fileop.close()
+	filefather.close()	
+	
+def FillMatrixDataUnionWithoutFK(FilesPath,Table,FatherTable,AttributeValues,GraphMatrix,ForeignKey,ForeignKeyValues,AttachTo):
+	IndexFK=[]
+	FatherIndexFK=[]
+	filefather = open(FilesPath+'/'+FatherTable+'.txt','r')
+	fileop = open(FilesPath+'/'+Table,'r')
+	AttributesLine = fileop.readline().split()	
+	for a in AttributesLine:
+		if a in ForeignKey:
+			IndexFK.append(AttributesLine.index(a))
+	FatherAttributesLine = filefather.readline().split()	
+	for a in AttributesLine:
+		if a in ForeignKey:
+			FatherIndexFK.append(FatherAttributesLine.index(a))
+	print('Table: ',Table)
+	print('Indices de las FK:',IndexFK)
+	print('Indices de las FK presentes en father: ', FatherIndexFK)	
+			
+	it=islice(fileop,0,None)	
+	for Line in it:
+		AttributesLine = Line.split()
+		for i in range(len(AttributesLine)):
+			for j in range(i+1,len(AttributesLine)):
+				if i not in IndexFK and j not in IndexFK:
+					Index_i = AttributeValues.index(AttributesLine[i])
+					Index_j = AttributeValues.index(AttributesLine[j])
+					GraphMatrix[Index_i][Index_j][0] +=1
+					GraphMatrix[Index_j][Index_i][0] +=1
+		lookingfor = []		
+		for i in IndexFK:
+			try:
+				lookingfor.append(AttributesLine[i])
+			except:
+				print ('There is not value for a specific attribute')	
+		filefather.seek(0,0)
+		itc = islice(filefather,1,None)
+		for LineOnTable2 in itc:
+			#print (LineOnTable2)
+			AttributesOnTable2 = LineOnTable2.split() 
+			equal = True
+			i=0
+			while(equal and i <len(lookingfor)):
+				try:#puede haber ocasiones que la linea no tenga todos los attributos
+					if lookingfor[i] != AttributesOnTable2[FatherIndexFK[i]]:
+						equal = False
+					else:
+						i += 1
+				except:
+					i=len(lookingfor)
+					equal = False
+			if equal:
+				for i in range(len(AttributesLine)):
+					if i not in IndexFK:
+						Index_i = AttributeValues.index(AttributesLine[i])
+						for j in range(len(AttributesOnTable2)):
+							if j not in FatherIndexFK and AttributesOnTable2[j] not in ForeignKeyValues:							
+								Index_j = AttributeValues.index(AttributesOnTable2[j])
+								GraphMatrix[Index_i][Index_j][0] +=1
+								GraphMatrix[Index_j][Index_i][0] +=1
+						print(IndexFK[0])
+						print(AttributesLine[IndexFK[0]])
+						print(ForeignKeyValues.index(AttributesLine[IndexFK[0]]))
+						for attributes in AttachTo[ForeignKeyValues.index(AttributesLine[IndexFK[0]])]:
+							Index_j = AttributeValues.index(attributes)
+							GraphMatrix[Index_i][Index_j][0] +=1
+							GraphMatrix[Index_j][Index_i][0] +=1
+						for al in lookingfor:
+							if AttributesLine[i] not in	AttachTo[ForeignKeyValues.index(al)]:
+								AttachTo[ForeignKeyValues.index(al)].append(AttributesLine[i])
+											
+	fileop.close()
+	filefather.close()
+#xyz se trata como un solo elemento, pero a la vez no apareceran en la matriz	
+def FillGraphMatrixWithoutFK(FilesPath,Table,ForeignKeyValues,AttributeValues,AttachTo,GraphMatrix,ForeignKey):
+	fileop = open(FilesPath+'/'+Table+'.txt','r')
+	Line = fileop.readline().split()
+	IndexFK = []
+	for a in Line:
+		if a in ForeignKey:
+			IndexFK.append(Line.index(a))
+
+	print('AttachTo:')
+	for i in AttachTo:
+		print (i)
+	print('-----')
+	print('Attribute Values:')
+	for i in AttributeValues:
+		print (i) 
+		
+	it=islice(fileop,0,None)	
+	for Line in it:
+		print('***********', Line)
+		newline=[]
+		keyinline=[]
+		AttributesLine = Line.split()
+		for a in range(len(AttributesLine)):
+			if a in IndexFK:
+				keyinline.append(AttributesLine[a])
+			elif AttributesLine[a] not in newline:
+				newline.append(AttributesLine[a])
+		for i in AttachTo[ForeignKeyValues.index(keyinline)]:
+			if i not in newline:
+				newline.append(i)
+			
+		for i in range(len(newline)):
+			for j in range(i+1,len(newline)):
+				Index_i = AttributeValues.index(newline[i])
+				Index_j = AttributeValues.index(newline[j])
+				GraphMatrix[Index_i][Index_j][0] +=1
+				GraphMatrix[Index_j][Index_i][0] +=1					
+	fileop.close()
+
+#xyz se trata como un solo elemento, apareceran en la matriz	
+def FillGraphMatrixWithFK(FilesPath,Table,ForeignKeyValues,AttributeValues,AttachTo,GraphMatrix,ForeignKey):
+	fileop = open(FilesPath+'/'+Table+'.txt','r')
+	Line = fileop.readline().split()
+	IndexFK = []
+	for a in Line:
+		if a in ForeignKey:
+			IndexFK.append(Line.index(a))
+
+	print('AttachTo:')
+	for i in AttachTo:
+		print (i)
+	print('-----')
+	print('Attribute Values:')
+	for i in AttributeValues:
+		print (i) 
+		
+	it=islice(fileop,0,None)	
+	for Line in it:
+		print('***********', Line)
+		newline=[]
+		keyinline=[]
+		aux=''
+		AttributesLine = Line.split()
+		for a in range(len(AttributesLine)):
+			if a in IndexFK:
+				keyinline.append(AttributesLine[a])
+			elif AttributesLine[a] not in newline:
+				newline.append(AttributesLine[a])
+		for i in AttachTo[ForeignKeyValues.index(keyinline)]:
+			if i not in newline:
+				newline.append(i)
+		newline.append(keyinline)
+			
+		for i in range(len(newline)):
+			for j in range(i+1,len(newline)):
+				Index_i = AttributeValues.index(newline[i])
+				Index_j = AttributeValues.index(newline[j])
+				GraphMatrix[Index_i][Index_j][0] +=1
+				GraphMatrix[Index_j][Index_i][0] +=1					
+	fileop.close()
+	
+	
+def FillGraphMatrix(FilesPath,Table,ForeignKeyValues,AttributeValues,AttachTo,GraphMatrix):
+	fileop = open(FilesPath+'/'+Table+'.txt','r')
+	it=islice(fileop,1,None)
+	print('AttachTo:')
+	for i in AttachTo:
+		print (i)
+	print('-----')
+	print('Attribute Values:')
+	for i in AttributeValues:
+		print (i) 
+	for Line in it:
+		newline=[]
+		AttributesLine = Line.split()
+		for a in AttributesLine:
+			if a in ForeignKeyValues:
+				for i in AttachTo[ForeignKeyValues.index(a)]:
+					if i not in newline:
+						newline.append(i)
+			else:
+				newline.append(a)
+		for i in range(len(newline)):
+			for j in range(i+1,len(newline)):
+				Index_i = AttributeValues.index(newline[i])
+				Index_j = AttributeValues.index(newline[j])
+				GraphMatrix[Index_i][Index_j][0] +=1
+				GraphMatrix[Index_j][Index_i][0] +=1					
+	fileop.close()
+	
+	
+def FillMatrix(FilesPath,Table,AttributeValues,GraphMatrix):
+	fileop = open(FilesPath+'/'+Table,'r')
+	it=islice(fileop,1,None)
+	for Line in it:
+		AttributesLine = Line.split()
+		for i in range(len(AttributesLine)):
+			for j in range(i+1,len(AttributesLine)):
+				#if AttributesLine[i] not in ForeignKeysValues:
+				Index_i = AttributeValues.index(AttributesLine[i])
+				#if AttributesLine[j] not in ForeignKeysValues:
+				Index_j = AttributeValues.index(AttributesLine[j])
+				GraphMatrix[Index_i][Index_j][0] +=1
+				GraphMatrix[Index_j][Index_i][0] +=1					
+	fileop.close()
+	
+						
 
 def DesnormalizeDatasets(files_path, FatherTable,ForeignKeySet,GraphMatrix):
 	ForeignKey = ForeignKeySet.split(',') 
@@ -628,8 +1078,8 @@ def DesnormalizeDatasets(files_path, FatherTable,ForeignKeySet,GraphMatrix):
 		if filename != MergeWith+'.txt' and filename != FatherTable+'.txt' :
 			filename = filename.replace('.txt','')
 			MergeWith = Merge2(filename,MergeWith,ForeignKey,files_path,ForeignKeysValues)
-	#TxtFile(files_path+'/'+MergeWith+'.txt', GraphMatrix)
-	TxtFile_Desnormalize(files_path+'/'+MergeWith+'.txt', GraphMatrix, ForeignKeysValues)
+	#TxtFile(files_path+'/'+MergeWith+'.txt', GraphMatrix)#keep the foreign key attribute values 
+	TxtFile_Desnormalize(files_path+'/'+MergeWith+'.txt', GraphMatrix, ForeignKeysValues)#quita los foreign key attribute values
 		
 '''
 Table2 sera la FatherTable, mezcla los valores de Table1 con Table2 segun los atributos de la llave foranea
@@ -1261,7 +1711,7 @@ if '1' in opt:
 	ReadFile()
 elif '2' in opt:
 	files_path = input('File name:')
-	fk_bool = input('There is a foreign key?(Y/N) ')
+	fk_bool = input('There is a foreign key?(Y/N): ')
 	if fk_bool=='n' or fk_bool=='N':
 		typeoffiles = input('Give the files type: \n')
 		if 'txt' in typeoffiles or 'csv' in typeoffiles:
@@ -1270,9 +1720,11 @@ elif '2' in opt:
 			DocumentsArffFile(GraphMatrix)
 	else:
 		FatherTable = input('Father table name: ')
-		ForeignKeySet=input('Give the set of foreign keys: ')
+		ForeignKeySet=input('Give the set of foreign keys (without spaces): ')
+		FKinGraph = input('Will foreig key values be display?(Y/N): ')
 		print('ok, let us go work with: ',files_path)
-		DesnormalizeDatasets(files_path,FatherTable,ForeignKeySet,GraphMatrix)
+		DataUnion(files_path,FatherTable,ForeignKeySet,GraphMatrix,FKinGraph) #toma en cuenta los foreign keys
+		#DesnormalizeDatasets(files_path,FatherTable,ForeignKeySet,GraphMatrix)
 		#DocumentsFKTxtFile(GraphMatrix,FatherTable,ForeignKeySet,files_path)
 		
 		
@@ -1416,8 +1868,8 @@ if GraphMatrix != []:
               
 	
 	
-	
-#print(TotalAttributesValues)	
-#for i in TotalAttributesValues:
-#	print (i)
-
+print('~~~~~~~~')	
+print(TotalAttributesValues)	
+for i in TotalAttributesValues:
+	print (i)
+print('~~~~~~~~')	

@@ -1,0 +1,5 @@
+course_id courseLevel
+course_id_5 courseLevel_Level_300
+course_id_8 courseLevel_Level_400
+course_id_0 courseLevel_Level_500
+course_id_9 courseLevel_Level_500

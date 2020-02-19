@@ -1,0 +1,5 @@
+course_id p_id Name 
+course_id_0 p_id_4 Alice
+course_id_5 p_id_3 Bob
+course_id_8 p_id_5 Carl	
+course_id_9 p_id_6 David

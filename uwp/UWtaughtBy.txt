@@ -1,0 +1,5 @@
+course_id p_id Date
+course_id_0 p_id_4 06/08
+course_id_5 p_id_3 05/09
+course_id_8 p_id_5 12/03
+course_id_9 p_id_6 07/11

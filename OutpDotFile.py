@@ -37,9 +37,9 @@ def GiveName(SomeList):
 			if type(i)==list:
 				name = name + GiveName(i)
 			else:
-				name= name+TotalAttributesValues[int(i)]
+				name= name+str(TotalAttributesValues[int(i)])
 	else:
-		name= TotalAttributesValues[int(SomeList)]		
+		name= str(TotalAttributesValues[int(SomeList)])		
 	name = name.replace(".","p")	
 	return name
 	
@@ -283,9 +283,9 @@ for c in ClanList:
 	
 for i in SingletonNodes:
 	if TotalAttributesValues[int(i)][0].isdigit():
-		OutputFile.write('"'+TotalAttributesValues[int(i)]+'";\n')
+		OutputFile.write('"'+str(TotalAttributesValues[int(i)])+'";\n')
 	else:
-		OutputFile.write(TotalAttributesValues[int(i)]+';\n')
+		OutputFile.write(str(TotalAttributesValues[int(i)])+';\n')
 if len(ClanList)>=1:
 	#if len(ClanList)==2:
 	#	OutputFile.write('rank=same;\n')
@@ -305,11 +305,11 @@ if len(ClanList)>=1:
 
 
 for i in SingletonNodes:
-	fromAttributeValue = TotalAttributesValues[int(i)].replace('.','p')
+	fromAttributeValue = str(TotalAttributesValues[int(i)]).replace('.','p')
 	if TotalAttributesValues[int(i)][0].isdigit():
-		OutputFile.write('n_'+fromAttributeValue +' -> "'+TotalAttributesValues[int(i)]+'" [arrowhead = none];\n')
+		OutputFile.write('n_'+fromAttributeValue +' -> "'+str(TotalAttributesValues[int(i)])+'" [arrowhead = none];\n')
 	else:
-		OutputFile.write('n_'+fromAttributeValue +' -> '+TotalAttributesValues[int(i)]+' [arrowhead = none];\n') 
+		OutputFile.write('n_'+fromAttributeValue +' -> '+str(TotalAttributesValues[int(i)])+' [arrowhead = none];\n') 
 		#OutputFile.write('n_'+TotalAttributesValues[int(i)] +' -> '+TotalAttributesValues[int(i)]+' [arrowhead = none];\n') 
 
 if OthersMax!='':
